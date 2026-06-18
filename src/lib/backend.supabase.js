@@ -95,18 +95,21 @@ export async function getProgreso(userId) {
   }
 }
 
-export async function completarReto(userId, reto) {
+export async function completarReto(userId, reto, montoElegido) {
   const hoy = hoyISO()
   const prog = await getProgreso(userId)
   if (prog.retos_completados.some((r) => r.fecha === hoy)) return { progreso: prog, yaCompletado: true, ganancia: 0 }
 
+  // Monto personalizado: puntos = monto elegido × 2.
+  const monto = Number(montoElegido) > 0 ? Number(montoElegido) : reto.monto
+  const qori = Math.round(monto * 2)
   const streak = (prog.ultima_fecha && diasEntre(prog.ultima_fecha, hoy) === 1) ? prog.streak + 1 : 1
-  const monedas = prog.monedas + reto.qori
-  const total = prog.total_ahorrado + reto.monto
+  const monedas = prog.monedas + qori
+  const total = prog.total_ahorrado + monto
   const nivel = nivelPorMonedas(monedas).nivel
 
   const { error: e1 } = await supabase.from('retos_completados')
-    .insert({ user_id: userId, reto_id: reto.id, fecha: hoy, qori: reto.qori, monto: reto.monto })
+    .insert({ user_id: userId, reto_id: reto.id, fecha: hoy, qori, monto })
   if (e1) {
     if ((e1.message || '').includes('duplicate')) return { progreso: prog, yaCompletado: true, ganancia: 0 }
     throw new Error(traducir(e1))
@@ -117,7 +120,7 @@ export async function completarReto(userId, reto) {
   if (e2) throw new Error(traducir(e2))
 
   const progreso = await getProgreso(userId)
-  return { progreso, yaCompletado: false, ganancia: reto.qori }
+  return { progreso, yaCompletado: false, ganancia: qori }
 }
 
 export async function retoCompletadoHoy(userId) {
@@ -127,11 +130,26 @@ export async function retoCompletadoHoy(userId) {
 
 // ---------- GASTOS ----------
 export async function addGasto(userId, { categoria, monto, nota }) {
+  const hoy = hoyISO()
   const { data, error } = await supabase.from('gastos')
-    .insert({ user_id: userId, categoria, monto: Number(monto), nota: nota || '', fecha: hoyISO() })
+    .insert({ user_id: userId, categoria, monto: Number(monto), nota: nota || '', fecha: hoy })
     .select().single()
   if (error) throw new Error(traducir(error))
-  return data
+
+  // Ahorro: recompensa especial → monedas dobles, sube la racha y suma al ahorro.
+  let ganancia = 0
+  if (categoria === 'ahorro') {
+    const prog = await getProgreso(userId)
+    ganancia = Math.round(Number(monto) * 2)
+    const patch = { monedas: prog.monedas + ganancia, total_ahorrado: prog.total_ahorrado + Number(monto), updated_at: new Date().toISOString() }
+    if (prog.ultima_fecha !== hoy) {
+      patch.streak = (prog.ultima_fecha && diasEntre(prog.ultima_fecha, hoy) === 1) ? prog.streak + 1 : 1
+      patch.ultima_fecha = hoy
+    }
+    patch.nivel = nivelPorMonedas(patch.monedas).nivel
+    await supabase.from('progreso_usuario').update(patch).eq('user_id', userId)
+  }
+  return { gasto: { ...data, monto: Number(data.monto) }, ganancia }
 }
 
 export async function getGastosDelMes(userId, mesISO = hoyISO().slice(0, 7)) {
@@ -149,9 +167,24 @@ export async function getGastos(userId) {
 export async function resetUsuario(userId) {
   await supabase.from('retos_completados').delete().eq('user_id', userId)
   await supabase.from('gastos').delete().eq('user_id', userId)
+  await supabase.from('insignias_usuario').delete().eq('user_id', userId)
   await supabase.from('progreso_usuario')
     .update({ monedas: 0, nivel: 1, streak: 0, ultima_fecha: null, total_ahorrado: 0, lecciones_completadas: [] })
     .eq('user_id', userId)
+}
+
+// ---------- INSIGNIAS ----------
+export async function getInsignias(userId) {
+  const { data } = await supabase.from('insignias_usuario').select('insignia_id').eq('user_id', userId)
+  return (data || []).map((r) => r.insignia_id)
+}
+
+export async function guardarInsignias(userId, ids) {
+  if (ids && ids.length) {
+    const filas = ids.map((insignia_id) => ({ user_id: userId, insignia_id }))
+    await supabase.from('insignias_usuario').upsert(filas, { onConflict: 'user_id,insignia_id', ignoreDuplicates: true })
+  }
+  return getInsignias(userId)
 }
 
 // ---------- PLAN (freemium) ----------

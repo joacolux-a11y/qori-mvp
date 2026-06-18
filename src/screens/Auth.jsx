@@ -45,7 +45,7 @@ export default function Auth() {
         </p>
       </div>
 
-      <form onSubmit={submit} style={{ marginTop: 'auto', background: theme.cream, color: theme.ink, margin: '32px -22px -24px', borderRadius: '28px 28px 0 0', padding: '24px 22px 32px' }}>
+      <form onSubmit={submit} style={{ background: theme.cream, color: theme.ink, margin: '32px -22px -32px', borderRadius: '28px 28px 0 0', padding: '24px 22px 32px' }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
           {[['registro', 'Crear cuenta'], ['login', 'Iniciar sesión']].map(([k, l]) => (
             <button key={k} type="button" onClick={() => { setModo(k); setError('') }}

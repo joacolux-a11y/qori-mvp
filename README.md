@@ -67,9 +67,29 @@ qori/
                                 # Profile, Settings, Upgrade
 ```
 
-> **¿Ya tenías la base de datos creada?** Corre `supabase/migration_v2.sql` en el SQL
-> Editor para añadir `users.plan`, la tabla `presupuestos` y `lecciones_completadas`.
+> **¿Ya tenías la base de datos creada?** Corre las migraciones que te falten en el SQL
+> Editor: `migration_v2.sql` (plan, presupuestos, lecciones) y `migration_v3.sql`
+> (categoría `ahorro` en gastos + tabla `insignias_usuario`).
 > En instalaciones nuevas, `schema.sql` ya lo incluye todo.
+
+### Funciones nuevas (v3)
+
+- **Tracker estilo calculadora** — display grande, 4 categorías (Comida, Transporte,
+  Diversión, Ahorro 💰), teclado 4×3 y botón verde "Registrar". Historial detrás del
+  botón 📜. Registro en menos de 5 segundos.
+- **Categoría Ahorro** — al registrar un ahorro: monedas **dobles** (monto × 2), sube la
+  racha y aparece en **verde** en el historial. (En Supabase: `migration_v3.sql` amplía el
+  check de `gastos.categoria`.)
+- **Límite diario** — en el tab "Hoy", límite por categoría = presupuesto mensual ÷ días
+  del mes, con barra que se pone **roja** y avisa "¡Ojo! Pasaste tu límite de hoy".
+- **Retos con monto personalizado** — al aceptar un reto, un slider deja elegir cuánto
+  ahorrar (rango sugerido); los puntos son monto × 2. El monto se guarda en
+  `retos_completados`.
+- **Insignias** — sección "Mis logros" en Perfil con 6 insignias (Semilla, Racha 7 días,
+  Mes en verde, Estudioso, Primer ahorro, Qori Maestro). Las obtenidas van a color, las
+  pendientes en gris con su requisito. Se guardan en `insignias_usuario`.
+- **Scroll** — todas las pantallas hacen scroll libre; las pantallas inmersivas
+  (reto, lección, upgrade) ocultan la barra inferior para no tapar contenido.
 
 ## Lógica de gamificación
 

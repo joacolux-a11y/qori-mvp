@@ -45,18 +45,20 @@ export default function LessonPlayer() {
   if (fin) {
     const perfecto = fin.aciertos === leccion.preguntas.length
     return (
-      <div className="screen-full center" style={{ background: theme.green, color: theme.cream, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div className="pop" style={{ fontSize: 84 }}>{perfecto ? '🏆' : '🎉'}</div>
-        <h1 style={{ fontSize: 28, marginTop: 12 }}>{perfecto ? '¡Perfecto!' : '¡Lección terminada!'}</h1>
-        <p style={{ fontSize: 17, marginTop: 8, opacity: .9 }}>
-          Acertaste {fin.aciertos} de {leccion.preguntas.length}
-        </p>
-        <div style={{ margin: '20px 0' }}>
-          {fin.yaCompletada
-            ? <p style={{ opacity: .8 }}>Ya habías completado esta lección antes 😉</p>
-            : <p style={{ fontSize: 20 }}>Ganaste <b style={{ color: theme.gold }}>+{fin.ganancia} 🪙</b></p>}
+      <div className="screen-full" style={{ background: theme.green, color: theme.cream }}>
+        <div className="vcenter center">
+          <div className="pop" style={{ fontSize: 84 }}>{perfecto ? '🏆' : '🎉'}</div>
+          <h1 style={{ fontSize: 28, marginTop: 12 }}>{perfecto ? '¡Perfecto!' : '¡Lección terminada!'}</h1>
+          <p style={{ fontSize: 17, marginTop: 8, opacity: .9 }}>
+            Acertaste {fin.aciertos} de {leccion.preguntas.length}
+          </p>
+          <div style={{ margin: '20px 0' }}>
+            {fin.yaCompletada
+              ? <p style={{ opacity: .8 }}>Ya habías completado esta lección antes 😉</p>
+              : <p style={{ fontSize: 20 }}>Ganaste <b style={{ color: theme.gold }}>+{fin.ganancia} 🪙</b></p>}
+          </div>
+          <div><Button onClick={() => nav('/app/lecciones')}>Volver a lecciones</Button></div>
         </div>
-        <div><Button onClick={() => nav('/app/lecciones')}>Volver a lecciones</Button></div>
       </div>
     )
   }

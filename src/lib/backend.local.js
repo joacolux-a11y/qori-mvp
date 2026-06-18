@@ -7,9 +7,9 @@ const PRESUPUESTO_DEFAULT = { comida: 300, entretenimiento: 150, transporte: 150
 function load() {
   try {
     const db = JSON.parse(localStorage.getItem(KEY)) || {}
-    return { users: db.users || [], progreso: db.progreso || {}, gastos: db.gastos || [], presupuestos: db.presupuestos || {} }
+    return { users: db.users || [], progreso: db.progreso || {}, gastos: db.gastos || [], presupuestos: db.presupuestos || {}, insignias: db.insignias || {} }
   } catch {
-    return { users: [], progreso: {}, gastos: [], presupuestos: {} }
+    return { users: [], progreso: {}, gastos: [], presupuestos: {}, insignias: {} }
   }
 }
 function save(db) { localStorage.setItem(KEY, JSON.stringify(db)) }
@@ -75,20 +75,23 @@ export async function getProgreso(userId) {
   return p
 }
 
-export async function completarReto(userId, reto) {
+export async function completarReto(userId, reto, montoElegido) {
   const db = load()
   const p = db.progreso[userId]
   if (!p) throw new Error('Sin progreso')
   const hoy = hoyISO()
   if (p.retos_completados.some((r) => r.fecha === hoy)) return { progreso: p, yaCompletado: true, ganancia: 0 }
+  // Monto personalizado: puntos = monto elegido × 2.
+  const monto = Number(montoElegido) > 0 ? Number(montoElegido) : reto.monto
+  const qori = Math.round(monto * 2)
   if (p.ultima_fecha && diasEntre(p.ultima_fecha, hoy) === 1) p.streak += 1
   else p.streak = 1
   p.ultima_fecha = hoy
-  p.monedas += reto.qori
-  p.total_ahorrado += reto.monto
-  p.retos_completados.push({ fecha: hoy, retoId: reto.id, qori: reto.qori, monto: reto.monto })
+  p.monedas += qori
+  p.total_ahorrado += monto
+  p.retos_completados.push({ fecha: hoy, retoId: reto.id, qori, monto })
   save(db)
-  return { progreso: p, yaCompletado: false, ganancia: reto.qori }
+  return { progreso: p, yaCompletado: false, ganancia: qori }
 }
 
 export async function retoCompletadoHoy(userId) {
@@ -100,10 +103,26 @@ export async function retoCompletadoHoy(userId) {
 
 export async function addGasto(userId, { categoria, monto, nota }) {
   const db = load()
-  const g = { id: 'g_' + Math.random().toString(36).slice(2, 9), user_id: userId, fecha: hoyISO(), categoria, monto: Number(monto), nota: nota || '' }
+  const hoy = hoyISO()
+  const g = { id: 'g_' + Math.random().toString(36).slice(2, 9), user_id: userId, fecha: hoy, categoria, monto: Number(monto), nota: nota || '' }
   db.gastos.push(g)
+  // Ahorro: recompensa especial → monedas dobles (monto × 2), sube la racha y suma al ahorro.
+  let ganancia = 0
+  if (categoria === 'ahorro') {
+    const p = db.progreso[userId]
+    if (p) {
+      ganancia = Math.round(Number(monto) * 2)
+      if (p.ultima_fecha !== hoy) {
+        if (p.ultima_fecha && diasEntre(p.ultima_fecha, hoy) === 1) p.streak += 1
+        else p.streak = 1
+        p.ultima_fecha = hoy
+      }
+      p.monedas += ganancia
+      p.total_ahorrado += Number(monto)
+    }
+  }
   save(db)
-  return g
+  return { gasto: g, ganancia }
 }
 
 export async function getGastosDelMes(userId, mesISO = hoyISO().slice(0, 7)) {
@@ -120,7 +139,23 @@ export async function resetUsuario(userId) {
   const db = load()
   db.progreso[userId] = { user_id: userId, monedas: 0, nivel: 1, streak: 0, ultima_fecha: null, retos_completados: [], lecciones_completadas: [], total_ahorrado: 0 }
   db.gastos = db.gastos.filter((g) => g.user_id !== userId)
+  if (db.insignias) db.insignias[userId] = []
   save(db)
+}
+
+// ---------- INSIGNIAS ----------
+export async function getInsignias(userId) {
+  const db = load()
+  return db.insignias[userId] || []
+}
+
+// Une las insignias recién desbloqueadas con las ya guardadas (no se pierden nunca).
+export async function guardarInsignias(userId, ids) {
+  const db = load()
+  const set = new Set([...(db.insignias[userId] || []), ...ids])
+  db.insignias[userId] = [...set]
+  save(db)
+  return db.insignias[userId]
 }
 
 // ---------- PLAN (freemium) ----------

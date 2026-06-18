@@ -12,7 +12,9 @@ export const theme = {
   // Categorías del tracker
   categories: {
     comida: '#F5A623',
+    transporte: '#2E5A4F',
     entretenimiento: '#1A3C34',
-    transporte: '#2E5A4F'
-  }
+    ahorro: '#2E8B57'
+  },
+  ahorroGreen: '#2E8B57'
 }

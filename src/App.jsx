@@ -17,14 +17,22 @@ function Shell({ children }) {
   return <div className="app-shell">{children}</div>
 }
 
+// Rutas inmersivas: flujos a pantalla completa, sin barra inferior.
+function esInmersiva(pathname) {
+  return /^\/app\/lecciones\/.+/.test(pathname) ||
+    pathname === '/app/reto' ||
+    pathname === '/app/upgrade'
+}
+
 function AppLayout() {
   const { user } = useAuth()
+  const loc = useLocation()
   if (!user) return <Navigate to="/auth" replace />
   if (!user.perfil) return <Navigate to="/onboarding" replace />
   return (
     <>
       <Outlet />
-      <BottomNav />
+      {!esInmersiva(loc.pathname) && <BottomNav />}
     </>
   )
 }

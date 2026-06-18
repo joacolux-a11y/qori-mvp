@@ -31,7 +31,8 @@ export default function Onboarding() {
   // ---------- Pantalla de resultado ----------
   if (resultado) {
     return (
-      <div className="screen-full" style={{ background: theme.green, color: theme.cream, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div className="screen-full" style={{ background: theme.green, color: theme.cream }}>
+        <div className="vcenter">
         <p className="center" style={{ opacity: .75, letterSpacing: 1, fontSize: 12 }}>TU AVATAR DE FINANZAS</p>
         <div className="pop center" style={{ fontSize: 90, margin: '12px 0' }}>{resultado.emoji}</div>
         <h1 className="center" style={{ fontSize: 30 }}>{resultado.nombre}</h1>
@@ -42,6 +43,7 @@ export default function Onboarding() {
           <p style={{ fontSize: 15, lineHeight: 1.45 }}>{resultado.consejoBase}</p>
         </div>
         <Button onClick={empezar}>¡Vamos, {user?.nombre?.split(' ')[0] || 'crack'}!</Button>
+        </div>
       </div>
     )
   }

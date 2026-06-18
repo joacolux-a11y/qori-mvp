@@ -1,16 +1,34 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { avatares } from '../data/quiz.js'
 import { niveles, nivelPorMonedas, siguienteNivel, progresoNivel } from '../data/niveles.js'
-import { resetUsuario } from '../lib/backend.js'
+import { insignias as defsInsignias, evaluarInsignias } from '../data/insignias.js'
+import { resetUsuario, getGastosDelMes, getPresupuesto, getInsignias, guardarInsignias } from '../lib/backend.js'
 import { Button, ProgressBar, CoinBadge } from '../components/UI.jsx'
 import { theme } from '../theme.js'
 
 export default function Profile() {
   const { user, progreso, signOut, refreshProgreso } = useAuth()
   const nav = useNavigate()
+  const [logros, setLogros] = useState([]) // ids desbloqueados
+
   useEffect(() => { refreshProgreso() }, [])
+
+  // Evalúa insignias con la data del usuario y persiste las recién obtenidas.
+  useEffect(() => {
+    if (!progreso) return
+    (async () => {
+      const [gastos, presupuesto, guardadas] = await Promise.all([
+        getGastosDelMes(user.id), getPresupuesto(user.id), getInsignias(user.id)
+      ])
+      const elegibles = evaluarInsignias({ progreso, gastos, presupuesto })
+      const todas = [...new Set([...guardadas, ...elegibles])]
+      if (todas.length > guardadas.length) await guardarInsignias(user.id, elegibles)
+      setLogros(todas)
+    })()
+  }, [progreso])
+
   if (!progreso) return null
 
   const avatar = avatares[user.perfil]
@@ -54,6 +72,28 @@ export default function Profile() {
         <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
           {sig ? `${sig.requiere - progreso.monedas} monedas para ${sig.nombre} ${sig.insignia}` : '¡Eres Qori Maestro! 👑'}
         </p>
+      </div>
+
+      {/* Mis logros (insignias) */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+        <p style={{ fontFamily: 'Poppins', fontWeight: 700, color: theme.green }}>Mis logros</p>
+        <span className="muted" style={{ fontSize: 12 }}>{logros.length}/{defsInsignias.length}</span>
+      </div>
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          {defsInsignias.map((b) => {
+            const got = logros.includes(b.id)
+            return (
+              <div key={b.id} style={{ textAlign: 'center', opacity: got ? 1 : .6 }}>
+                <div style={{ fontSize: 34, filter: got ? 'none' : 'grayscale(1)' }}>{b.emoji}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: got ? theme.green : theme.muted, marginTop: 2 }}>{b.nombre}</div>
+                <div className="muted" style={{ fontSize: 10.5, lineHeight: 1.25, marginTop: 2 }}>
+                  {got ? '✅ Obtenida' : b.requisito}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Camino de niveles (logros) */}

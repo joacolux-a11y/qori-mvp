@@ -47,6 +47,14 @@ create table if not exists public.presupuestos (
   updated_at       timestamptz default now()
 );
 
+-- INSIGNIAS — logros desbloqueados por usuario
+create table if not exists public.insignias_usuario (
+  user_id      uuid references public.users(id) on delete cascade,
+  insignia_id  text not null,
+  unlocked_at  timestamptz default now(),
+  primary key (user_id, insignia_id)
+);
+
 -- Retos completados (historial; un registro por día/usuario)
 create table if not exists public.retos_completados (
   id          bigint generated always as identity primary key,
@@ -62,7 +70,7 @@ create table if not exists public.retos_completados (
 create table if not exists public.gastos (
   id         bigint generated always as identity primary key,
   user_id    uuid references public.users(id) on delete cascade,
-  categoria  text not null check (categoria in ('comida','entretenimiento','transporte')),
+  categoria  text not null check (categoria in ('comida','entretenimiento','transporte','ahorro')),
   monto      numeric not null,
   nota       text default '',
   fecha      date not null default current_date,
@@ -78,6 +86,7 @@ alter table public.retos_completados   enable row level security;
 alter table public.gastos              enable row level security;
 alter table public.retos               enable row level security;
 alter table public.presupuestos        enable row level security;
+alter table public.insignias_usuario   enable row level security;
 
 create policy "users_self"        on public.users
   for all using (auth.uid() = id) with check (auth.uid() = id);
@@ -90,6 +99,8 @@ create policy "gastos_self"       on public.gastos
 create policy "retos_read_all"    on public.retos
   for select using (true);
 create policy "presupuestos_self" on public.presupuestos
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "insignias_self" on public.insignias_usuario
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ============================================================

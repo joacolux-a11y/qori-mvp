@@ -43,8 +43,12 @@ input { font-family: inherit; }
   .app-shell { box-shadow: 0 0 60px rgba(0,0,0,0.35); }
 }
 
-.screen { flex: 1; padding: 20px 20px 96px; overflow-y: auto; }
-.screen-full { flex: 1; padding: 24px 22px; overflow-y: auto; }
+.screen { flex: 1; padding: 20px 20px 96px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.screen-full { flex: 1; padding: 24px 22px 32px; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
+
+/* Centra verticalmente PERO permite scroll cuando el contenido no entra.
+   (Usar este wrapper en vez de justify-content:center, que recorta el tope.) */
+.vcenter { margin: auto 0; width: 100%; }
 
 /* Botones */
 .btn {
