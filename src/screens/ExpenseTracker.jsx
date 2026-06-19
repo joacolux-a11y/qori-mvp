@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { addGasto, getGastosDelMes, getPresupuesto, setPresupuesto, hoyISO } from '../lib/backend.js'
 import BudgetModal from '../components/BudgetModal.jsx'
+import VoiceExpense from '../components/VoiceExpense.jsx'
 import { Button, CoinBadge } from '../components/UI.jsx'
 import { theme } from '../theme.js'
 
@@ -43,12 +44,17 @@ export default function ExpenseTracker() {
     })
   }
 
+  // Registro central (lo usan el teclado y el dictado por voz).
+  async function registrarGasto(categoria, montoVal) {
+    const { ganancia } = await addGasto(user.id, { categoria, monto: montoVal, nota: '' })
+    await cargar()
+    if (categoria === 'ahorro') { await refreshProgreso(); setFestejo({ monto: montoVal, qori: ganancia }) }
+  }
+
   async function registrar() {
     if (!monto || monto <= 0) return
-    const { ganancia } = await addGasto(user.id, { categoria: cat, monto, nota: '' })
+    await registrarGasto(cat, monto)
     setDisplay('')
-    await cargar()
-    if (cat === 'ahorro') { await refreshProgreso(); setFestejo({ monto, qori: ganancia }) }
   }
 
   async function guardarPresupuesto(val) { setPpto(await setPresupuesto(user.id, val)) }
@@ -113,6 +119,9 @@ export default function ExpenseTracker() {
         <Button variant="dark" onClick={registrar} disabled={!monto || monto <= 0}>
           {cat === 'ahorro' ? '💰 Registrar ahorro' : 'Registrar gasto'}
         </Button>
+
+        {/* Registro por voz (Web Speech API + IA) */}
+        <VoiceExpense onConfirm={registrarGasto} />
       </div>
 
       {/* Tabs de resumen */}

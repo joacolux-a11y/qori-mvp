@@ -1,14 +1,14 @@
-// Sección "¿Qué está pasando?" — noticia del día + motor de explicaciones.
+// Sección "¿Qué está pasando?" — noticias económicas de Perú + explicaciones.
 //
-// FUENTE DE NOTICIAS:
-//   - Si defines VITE_GNEWS_API_KEY en .env.local, trae noticias reales de Perú (GNews).
-//   - Si no, usa un set curado de titulares de ejemplo para que la sección funcione ya.
+// FUENTE: GNews. Define VITE_GNEWS_KEY en .env.local para traer noticias reales.
+//   Endpoint: https://gnews.io/api/v4/search?q=economia+peru&lang=es&country=pe&max=5&apikey=...
+//   Si la key no está o la API falla, caemos a un set curado (demo) sin romper la sección.
 //
-// EXPLICACIONES ("¿Por qué importa?"):
-//   - Hoy: motor local por temas (offline, sin costo).
-//   - Mañana: conecta un LLM en `explicarConLLM()` (ver nota más abajo).
+// EXPLICACIONES ("¿Por qué importa?"): se intenta primero el hook explicarConLLM()
+//   (para cuando conectes una Edge Function con IA); si devuelve null, usamos el
+//   motor local de plantillas por tema.
 
-const GNEWS_KEY = import.meta.env.VITE_GNEWS_API_KEY
+const GNEWS_KEY = import.meta.env.VITE_GNEWS_KEY
 
 // ---------- Titulares curados (fallback demo) ----------
 const NOTICIAS_DEMO = [
@@ -17,6 +17,7 @@ const NOTICIAS_DEMO = [
     titulo: 'El dólar cerró al alza y vuelve a presionar los precios de productos importados',
     fuente: 'Demo económico',
     resumen: 'El tipo de cambio subió en la última jornada por mayor demanda de dólares en el mercado local.',
+    fecha: new Date().toISOString(),
     url: null,
     tema: 'tipo-cambio'
   },
@@ -25,6 +26,7 @@ const NOTICIAS_DEMO = [
     titulo: 'BCRP mantiene la tasa de interés de referencia para seguir controlando la inflación',
     fuente: 'Demo económico',
     resumen: 'El Banco Central decidió no mover su tasa mientras la inflación se acerca a su rango meta.',
+    fecha: new Date().toISOString(),
     url: null,
     tema: 'bcrp'
   }
@@ -42,7 +44,7 @@ function detectarTema(texto = '') {
   return 'general'
 }
 
-// Explicaciones simples por tema, en lenguaje cotidiano peruano.
+// Explicaciones simples por tema, en lenguaje cotidiano peruano (motor local de respaldo).
 const EXPLICACIONES = {
   'tipo-cambio':
     'En cristiano: el dólar subió. ¿Y eso qué tiene que ver contigo? Que casi todo lo importado —tu próximo celular, la gasolina, varios productos del super— se paga en dólares. ' +
@@ -55,7 +57,7 @@ const EXPLICACIONES = {
     'Tu mejor defensa es que tu plata no se quede dormida: si tus ahorros ganan algún interés, le empatas o le ganas a la inflación en vez de perder valor sin darte cuenta.',
   afp:
     'En simple: esto toca tu plata de la jubilación. Cada mes un porcentaje de tu sueldo se va a tu cuenta en la AFP y se invierte para tu futuro. ' +
-    'Aunque te falte un montón para jubilarte, vale la pena entrar de vez en cuando a revisar tu fondo: es tuyo y mientras antes le prestes atención, mejor te irá.',
+    'Aunque te falte un montón para jubilarte, vale la pena entrar de vez en cuando a revisar tu fondo: es tuyo y mientras antes le prestes atención, mejor.',
   elecciones:
     'Lo que significa para ti: la incertidumbre política pone nervioso al dólar. Cuando no se sabe qué va a pasar, mucha gente compra dólares para protegerse y eso lo hace subir. ' +
     'No tienes que volverte experto en política, pero sí tener un fondo de emergencia y no tomar decisiones de plata en pánico.',
@@ -69,13 +71,13 @@ const EXPLICACIONES = {
 
 // ---------- API pública ----------
 
-// Trae la(s) noticia(s) del día. Usa GNews si hay key; si no, el set curado.
+// Trae noticias económicas de Perú. Usa GNews si hay key; si no, el set curado.
 export async function getNoticias() {
   if (!GNEWS_KEY) {
     return { fuente: 'demo', noticias: NOTICIAS_DEMO }
   }
   try {
-    const url = `https://gnews.io/api/v4/search?q=econom%C3%ADa%20OR%20d%C3%B3lar%20OR%20inflaci%C3%B3n&lang=es&country=pe&max=2&apikey=${GNEWS_KEY}`
+    const url = `https://gnews.io/api/v4/search?q=economia+peru&lang=es&country=pe&max=5&apikey=${GNEWS_KEY}`
     const res = await fetch(url)
     if (!res.ok) throw new Error('GNews respondió ' + res.status)
     const data = await res.json()
@@ -84,6 +86,7 @@ export async function getNoticias() {
       titulo: a.title,
       fuente: a.source?.name || 'GNews',
       resumen: a.description || '',
+      fecha: a.publishedAt || new Date().toISOString(),
       url: a.url || null,
       tema: detectarTema(a.title + ' ' + (a.description || ''))
     }))
@@ -94,25 +97,23 @@ export async function getNoticias() {
   }
 }
 
-// "¿Por qué importa?" — explicación simple para alguien de 20 años.
+// "¿Por qué importa?" — intenta el LLM; si no, usa el motor local por temas.
 export async function porQueImporta(noticia) {
-  // 👉 PARA CONECTAR UN LLM EN VIVO:
-  // Despliega una Supabase Edge Function que reciba el titular y devuelva una
-  // explicación generada por tu API de IA, y descomenta esto:
-  //
-  //   const r = await explicarConLLM(noticia.titulo)
-  //   if (r) return r
-  //
-  // Mientras tanto, usamos el motor local por temas:
+  try {
+    const r = await explicarConLLM(noticia)
+    if (r) return r
+  } catch { /* si el LLM falla, seguimos con el motor local */ }
   const tema = noticia.tema || detectarTema(noticia.titulo + ' ' + (noticia.resumen || ''))
   return EXPLICACIONES[tema] || EXPLICACIONES.general
 }
 
-// Hook listo para el futuro. Implementa la llamada a tu Edge Function aquí.
-// eslint-disable-next-line no-unused-vars
-export async function explicarConLLM(titular) {
-  // Ejemplo:
-  // const { data } = await supabase.functions.invoke('explicar-noticia', { body: { titular } })
-  // return data?.explicacion
+// Hook para generación en vivo. Implementa aquí tu Edge Function con IA.
+// Recibe la noticia y debe devolver una explicación simple (string) o null.
+export async function explicarConLLM(noticia) {
+  // Ejemplo de implementación futura:
+  //   const { data } = await supabase.functions.invoke('explicar-noticia', {
+  //     body: { titulo: noticia.titulo, resumen: noticia.resumen }
+  //   })
+  //   return data?.explicacion ?? null
   return null
 }

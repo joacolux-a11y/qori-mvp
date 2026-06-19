@@ -68,9 +68,33 @@ qori/
 ```
 
 > **¿Ya tenías la base de datos creada?** Corre las migraciones que te falten en el SQL
-> Editor: `migration_v2.sql` (plan, presupuestos, lecciones) y `migration_v3.sql`
-> (categoría `ahorro` en gastos + tabla `insignias_usuario`).
-> En instalaciones nuevas, `schema.sql` ya lo incluye todo.
+> Editor: `migration_v2.sql` (plan, presupuestos, lecciones), `migration_v3.sql`
+> (categoría `ahorro` + tabla `insignias_usuario`) y `migration_v4.sql` (columna
+> `users.perfil` + retos por perfil). En instalaciones nuevas, `schema.sql` ya lo incluye todo.
+
+### Registro de gastos por voz 🎤
+
+En la pantalla de gastos, el botón **"Registrar por voz"** usa la Web Speech API
+(`SpeechRecognition`, `es-PE`) para dictar el gasto. El texto va a
+`interpretarGastoConIA()` (`src/lib/voiceExpense.js`), que llama a **Gemini
+`gemini-1.5-flash`** (`VITE_GEMINI_KEY`) pidiendo un JSON estricto `{monto, categoria}`.
+Antes de guardar, muestra una confirmación ("Escuché: S/15 en Comida ✅") con confirmar/
+cancelar. El micrófono pulsa mientras escucha, y maneja permiso denegado, navegador sin
+soporte y respuestas inválidas ("No pude entender, intenta de nuevo"). Sin key de Gemini
+funciona con un intérprete local de respaldo.
+
+### Funciones nuevas (v4)
+
+- **Onboarding renovado** — 5 preguntas conversacionales que asignan un perfil
+  (`ahorrista`, `indiferente`, `gastador`, `endeudado`) y su avatar: Constructor 🏗️,
+  Explorador 🧭, Guerrero ⚔️, Aventurero 🎯. El perfil se guarda en `users.perfil`.
+- **Retos por perfil** — `src/data/retos.js` trae retos específicos por perfil (4+ cada uno)
+  además de los generales. El reto del día se filtra según el perfil del usuario (si aún
+  no tiene perfil, ve solo los generales).
+- **GNews real** — `src/lib/news.js` consume GNews (`VITE_GNEWS_KEY`, búsqueda
+  `economia+peru`). Cada noticia muestra título, descripción, fecha y botón "Leer más".
+  Sin key o si la API falla, cae a titulares demo. "¿Por qué importa?" usa el hook
+  `explicarConLLM` (placeholder) y, si devuelve null, el motor local de explicaciones.
 
 ### Funciones nuevas (v3)
 

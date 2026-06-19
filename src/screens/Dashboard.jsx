@@ -12,7 +12,7 @@ export default function Dashboard() {
   const { user, progreso, refreshProgreso } = useAuth()
   const nav = useNavigate()
   const [hechoHoy, setHechoHoy] = useState(false)
-  const reto = retoDelDia(hoyISO())
+  const reto = retoDelDia(hoyISO(), user.perfil)
 
   useEffect(() => { refreshProgreso() }, [])
   useEffect(() => { retoCompletadoHoy(user.id).then(setHechoHoy) }, [progreso])

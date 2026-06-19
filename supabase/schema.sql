@@ -23,7 +23,8 @@ create table if not exists public.retos (
   texto     text not null,
   monto     numeric not null default 0,   -- soles ahorrados estimados
   qori      integer not null default 0,   -- monedas que otorga
-  cat       text not null                 -- comida | entretenimiento | transporte
+  cat       text not null,                -- comida | entretenimiento | transporte
+  perfil    text not null default 'general' -- general | ahorrista | indiferente | gastador | endeudado
 );
 
 -- 3) PROGRESO_USUARIO — gamificación (1:1 con users)
@@ -124,19 +125,29 @@ create trigger on_auth_user_created
 -- ============================================================
 --  Semilla de retos (coincide con src/data/retos.js)
 -- ============================================================
-insert into public.retos (id, titulo, texto, monto, qori, cat) values
- ('r1','Café de casa','Hoy no compres café afuera. Prepáralo en casa y ahorra S/8.',8,20,'comida'),
- ('r2','Almuerzo de tópper','Llévate el almuerzo en lugar de pedir delivery. Ahorras unos S/15.',15,30,'comida'),
- ('r3','Caminata corta','Si el viaje es de menos de 15 min, camina en vez de tomar taxi. Ahorra S/10.',10,25,'transporte'),
- ('r4','Lista antes de salir','Antes de ir a la bodega, anota qué necesitas y compra solo eso.',12,20,'comida'),
- ('r5','Día sin antojos','Pasa el día sin comprar ningún snack ni golosina de impulso. Ahorra S/5.',5,20,'comida'),
- ('r6','Regla de los 10 minutos','¿Quieres comprar algo no planeado? Espera 10 min. Si se te pasan las ganas, ahorraste.',20,35,'entretenimiento'),
- ('r7','Suscripción dormida','Revisa una suscripción que no uses (música, apps) y cancélala hoy.',16,40,'entretenimiento'),
- ('r8','Recarga combinada','Junta tus trámites en un solo viaje para no gastar de más en pasajes.',8,20,'transporte'),
- ('r9','Botella propia','Lleva tu botella de agua y no compres bebidas afuera. Ahorra S/6.',6,15,'comida'),
- ('r10','Noche en casa','Cambia una salida por un plan en casa con amigos. Ahorra S/30.',30,45,'entretenimiento'),
- ('r11','Revisa antes de pagar','Antes de una compra grande, busca el mismo producto más barato en otro lado.',25,35,'entretenimiento'),
- ('r12','Apaga lo que no usas','Desconecta aparatos en standby hoy. Pequeño ahorro en tu recibo de luz.',4,15,'entretenimiento'),
- ('r13','Guarda el vuelto','Todo el sencillo que te sobre hoy, sepáralo en tu chanchito. Ahorra S/5.',5,20,'comida'),
- ('r14','Combi en vez de taxi','Usa transporte público para un trayecto que ibas a hacer en taxi. Ahorra S/12.',12,25,'transporte')
+insert into public.retos (id, titulo, texto, monto, qori, cat, perfil) values
+ ('r1','Café de casa','Hoy no compres café afuera. Prepáralo en casa y ahorra S/8.',8,20,'comida','general'),
+ ('r2','Almuerzo de tópper','Llévate el almuerzo en lugar de pedir delivery. Ahorras unos S/15.',15,30,'comida','general'),
+ ('r3','Caminata corta','Si el viaje es de menos de 15 min, camina en vez de tomar taxi. Ahorra S/10.',10,25,'transporte','general'),
+ ('r4','Lista antes de salir','Antes de ir a la bodega, anota qué necesitas y compra solo eso.',12,20,'comida','general'),
+ ('r5','Día sin antojos','Pasa el día sin comprar ningún snack ni golosina de impulso. Ahorra S/5.',5,20,'comida','general'),
+ ('r6','Botella propia','Lleva tu botella de agua y no compres bebidas afuera. Ahorra S/6.',6,15,'comida','general'),
+ ('r7','Recarga combinada','Junta tus trámites en un solo viaje para no gastar de más en pasajes.',8,20,'transporte','general'),
+ ('r8','Combi en vez de taxi','Usa transporte público para un trayecto que ibas a hacer en taxi. Ahorra S/12.',12,25,'transporte','general'),
+ ('a1','Sube tu meta','Aumenta tu meta de ahorro de esta semana en S/20. Tú puedes con más.',20,35,'comida','ahorrista'),
+ ('a2','Reto sin gastos','Pásate todo el día sin gastar nada que no sea estrictamente necesario.',25,40,'entretenimiento','ahorrista'),
+ ('a3','Cuenta con interés','Averigua hoy una caja o banco que pague más TREA y mueve un poco de tu ahorro ahí.',0,30,'comida','ahorrista'),
+ ('a4','Ahorro fantasma','Mete al chanchito el monto de un gusto que NO te diste hoy.',15,30,'entretenimiento','ahorrista'),
+ ('g1','Regla de los 10 minutos','Antes de cualquier compra que no planeabas, espera 10 minutos. Si se te pasan las ganas, ahorraste.',20,35,'entretenimiento','gastador'),
+ ('g2','Día sin delivery','Hoy cero apps de delivery. Cocina o come en casa y ahorra lo del envío + propina.',18,35,'comida','gastador'),
+ ('g3','Carrito en pausa','Deja en el carrito eso que ibas a comprar online y revísalo mañana.',30,40,'entretenimiento','gastador'),
+ ('g4','Solo efectivo hoy','Sal con un monto fijo en efectivo y guarda la tarjeta. Cuando se acaba, se acabó.',15,30,'entretenimiento','gastador'),
+ ('e1','La deuda más chica','Identifica tu deuda más pequeña y abónale algo hoy. El primer triunfo da impulso.',20,40,'entretenimiento','endeudado'),
+ ('e2','Mapa de deudas','Anota todas tus deudas con su monto y a quién le debes. Verlas claro es el primer paso.',0,30,'comida','endeudado'),
+ ('e3','Sin nuevas deudas','Hoy no uses la tarjeta de crédito para nada. Ni una cuota más.',15,35,'entretenimiento','endeudado'),
+ ('e4','Abono extra','Junta cualquier sencillo que te sobre hoy y abónalo a tu deuda principal.',10,30,'comida','endeudado'),
+ ('i1','Anota tus gastos','Anota 3 cosas en las que gastaste hoy. Sin juzgar, solo para verlas.',0,25,'comida','indiferente'),
+ ('i2','Tu gasto hormiga','Identifica un gastito diario que repites (gaseosa, snack) y hoy sáltatelo.',6,25,'comida','indiferente'),
+ ('i3','Revisa tu saldo','Entra a tu app del banco y mira cuánto tienes de verdad. Conocerlo ya es ganar.',0,20,'comida','indiferente'),
+ ('i4','Guarda S/5','Separa solo S/5 hoy a un lado. Empezar pequeño también cuenta.',5,25,'comida','indiferente')
 on conflict (id) do nothing;

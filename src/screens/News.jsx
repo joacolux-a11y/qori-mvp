@@ -4,6 +4,12 @@ import { conceptos } from '../data/conceptos.js'
 import PremiumGate from '../components/PremiumGate.jsx'
 import { theme } from '../theme.js'
 
+function fmtFecha(iso) {
+  try {
+    return new Date(iso).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })
+  } catch { return '' }
+}
+
 export default function News() {
   const [noticias, setNoticias] = useState([])
   const [fuente, setFuente] = useState('demo')
@@ -42,21 +48,32 @@ export default function News() {
           <div key={n.id} className="card" style={{ marginBottom: 12, borderLeft: `5px solid ${theme.gold}` }}>
             <p style={{ fontWeight: 600, color: theme.green, fontSize: 16, lineHeight: 1.35 }}>{n.titulo}</p>
             {n.resumen && <p className="muted" style={{ fontSize: 13, margin: '6px 0 0', lineHeight: 1.4 }}>{n.resumen}</p>}
-            <button onClick={() => verPorque(n)}
-              style={{ marginTop: 12, padding: '9px 14px', borderRadius: 12, background: theme.green, color: theme.cream, fontWeight: 700, fontSize: 13 }}>
-              {explica[n.id] ? 'Ocultar' : '🤔 ¿Por qué importa?'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+              <span className="muted" style={{ fontSize: 11 }}>{n.fuente}</span>
+              <span className="muted" style={{ fontSize: 11 }}>· {fmtFecha(n.fecha)}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <button onClick={() => verPorque(n)}
+                style={{ padding: '9px 14px', borderRadius: 12, background: theme.green, color: theme.cream, fontWeight: 700, fontSize: 13 }}>
+                {explica[n.id] ? 'Ocultar' : '🤔 ¿Por qué importa?'}
+              </button>
+              {n.url && (
+                <a href={n.url} target="_blank" rel="noopener noreferrer"
+                  style={{ padding: '9px 14px', borderRadius: 12, border: `1.5px solid ${theme.green}`, color: theme.green, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                  Leer más ↗
+                </a>
+              )}
+            </div>
             {explica[n.id] && (
               <div className="pop" style={{ marginTop: 12, padding: 14, borderRadius: 14, background: '#FFF6E6' }}>
                 <p style={{ fontSize: 14, lineHeight: 1.5 }}>{explica[n.id]}</p>
               </div>
             )}
-            <span style={{ display: 'block', marginTop: 10, fontSize: 11 }} className="muted">{n.fuente}</span>
           </div>
         ))}
         {fuente === 'demo' && !cargando && (
           <p className="muted" style={{ fontSize: 11, marginBottom: 6 }}>
-            Titulares de ejemplo. Agrega VITE_GNEWS_API_KEY para noticias reales en vivo.
+            Titulares de ejemplo. Agrega VITE_GNEWS_KEY para noticias reales en vivo.
           </p>
         )}
 

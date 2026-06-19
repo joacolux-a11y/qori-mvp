@@ -13,7 +13,7 @@ const catLabel = { comida: '🍽️ Comida', entretenimiento: '🎬 Entretenimie
 export default function DailyChallenge() {
   const { user, progreso, refreshProgreso } = useAuth()
   const nav = useNavigate()
-  const reto = retoDelDia(hoyISO())
+  const reto = retoDelDia(hoyISO(), user.perfil)
   const [hecho, setHecho] = useState(false)
   const [modal, setModal] = useState(false)
   const [celebrar, setCelebrar] = useState(null) // { qori, monto, subioNivel, nivel }
